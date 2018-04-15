@@ -1,5 +1,4 @@
 // game js file
-
 var log = console.log.bind(console)
 
 var loadImgFromPath = function(path){
@@ -8,28 +7,43 @@ var loadImgFromPath = function(path){
     return img
 }
 
+// 判断a,b是否相交
+var isCollide = function(a, b){
+    var x01 = a.x, y01 = a.y, x02 = a.x + a.img.width, y02 = a.y + a.img.height
+    var x11 = b.x, y11 = b.y, x12 = b.x + b.img.width, y12 = b.y + b.img.height
+    var zx = Math.abs(x01 + x02 -x11 - x12)
+    var x  = Math.abs(x01 - x02) + Math.abs(x11 - x12)
+    var zy = Math.abs(y01 + y02 - y11 - y12)
+    var y  = Math.abs(y01 - y02) + Math.abs(y11 - y12)
+    if(zx <= x && zy <= y){
+        return true
+    }
+    return false
+}
+
 // 工厂方法 创建对象
 var Paddle = function(){
-    var img = loadImgFromPath('block.png')
+    var img = loadImgFromPath('paddle.png')
     var o = {   // o is obj
         img : img,
         x : 100,
-        y : 200,
+        y : 230,
         speed : 15,
     }
     o.moveLeft = function(){
-        o.x -= o.speed
+        o.move(o.x - o.speed)
     }
     o.moveRight = function(){
-        o.x += o.speed
+        o.move(o.x + o.speed)
     }
-    o.collide = function(ball){
-        if(ball.y + ball.img.height > o.y){
-            if(ball.x > o.x && ball.x < o.x + o.img.width){
-                return true
-            }
+    o.move = function(x){
+        if(x < 0){
+            x = 0
         }
-        return false
+        if(x > 400 - o.img.width) {
+            x = 400 - o.img.width
+        }
+        o.x = x
     }
     return o
 }
@@ -39,7 +53,7 @@ var Ball = function(){
     var o = {
         img : img,
         x : 150,
-        y : 170,
+        y : 200,
         speedX : 10,
         speedY : 10,
         fired : false,
@@ -58,6 +72,23 @@ var Ball = function(){
     }
     o.fire = function(){
         o.fired = true
+    }
+    o.rebound = function(){
+        o.speedY *= -1
+    }
+    return o
+}
+
+var Block = function(){
+    var img = loadImgFromPath('block.png')
+    var o = {
+        img : img,
+        x : 100,
+        y : 40,
+        alive : true,
+    }
+    o.kill = function(){
+        o.alive = false
     }
     return o
 }
@@ -105,6 +136,14 @@ var _main_ = function(){
     var game = Game()
     var ball = Ball()
 
+    var blocks = new Array()
+    for(var i = 0; i < 5; i++){
+        var b = Block()
+        b.x = i * 100
+        b.y = 50
+        blocks.push(b)
+    }
+
     game.registerAction('a', function(){
         paddle.moveLeft()
     })
@@ -116,14 +155,30 @@ var _main_ = function(){
     })
     game.update = function(){
         game.context.clearRect(0, 0, game.canvas.width, game.canvas.height)
-        if(paddle.collide(ball)){
-            ball.speedY *= -1
+
+        if(isCollide(paddle, ball)){
+            ball.rebound()
         }
+        for(var i = 0; i < blocks.length; i++){
+            if(isCollide(ball, blocks[i])){
+                blocks[i].kill()
+                ball.rebound()
+            }
+        }
+
         ball.move()
     }
     game.draw = function(){
         game.drawImage(paddle)
         game.drawImage(ball)
+
+        for(var i = 0; i < blocks.length; i++){
+            if(blocks[i].alive){
+                game.drawImage(blocks[i])
+            }
+        }
+
+
     }
 }
 
